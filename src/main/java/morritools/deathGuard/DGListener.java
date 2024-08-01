@@ -7,11 +7,11 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 
 import java.util.UUID;
 
-public class DeathHandler implements Listener {
+public class DGListener implements Listener {
 
     private final Database database;
 
-    public DeathHandler(Database database) {
+    public DGListener(Database database) {
         this.database = database;
     }
 
@@ -23,7 +23,7 @@ public class DeathHandler implements Listener {
         int deathId = database.getNextDeathId(uuidString);
         String serializedInventory = Utils.serializeInventory(player);
         long time = System.currentTimeMillis();
-        String reason = Utils.simplifyReason(e.getDeathMessage());
+        String reason = Utils.simplifyReason(e.getDeathMessage(), player.getName());
         String location = Utils.simplifyLocation(player);
         String world = Utils.simplifyWorld(player);
         String data = String.format("%d.%s.%d.%s.%s.%s",

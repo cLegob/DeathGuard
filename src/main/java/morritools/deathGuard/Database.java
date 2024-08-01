@@ -103,4 +103,34 @@ public class Database {
 
         return numberOfEntries + 1;
     }
+    public void purgeAllData() {
+        String deleteSQL = "DELETE FROM player_data";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(deleteSQL);
+            plugin.getLogger().info("All death data has been purged.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void purgeUserData(String uuid) {
+        String selectSQL = "SELECT player_uuid FROM player_data WHERE player_uuid = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+            pstmt.setString(1, uuid);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String playerUUID = rs.getString("player_uuid");
+                String deleteSQL = "DELETE FROM player_data WHERE player_uuid = ?";
+                try (PreparedStatement deletePstmt = connection.prepareStatement(deleteSQL)) {
+                    deletePstmt.setString(1, playerUUID);
+                    deletePstmt.executeUpdate();
+                    plugin.getLogger().info("Death data for player " + uuid + " has been purged.");
+                }
+            } else {
+                plugin.getLogger().warning("No data found for player " + uuid);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -11,8 +11,9 @@ public final class DeathGuard extends JavaPlugin {
         database = new Database(this);
         database.connect();
         database.createTable();
-        getServer().getPluginManager().registerEvents(new DeathHandler(database), this);
-
+        getServer().getPluginManager().registerEvents(new DGListener(database), this);
+        this.getCommand("deathguard").setExecutor(new DGCommandExecutor(this, database));
+        getCommand("deathguard").setTabCompleter(new DGTabCompleter(this, database));
     }
 
     @Override
