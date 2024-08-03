@@ -31,14 +31,14 @@ public class DGTabCompleter implements TabCompleter {
             List<String> commands = List.of("lookup", "rollback", "purge", "purgeuser");
             StringUtil.copyPartialMatches(args[0], commands, suggestions);
         } else if (args.length == 2) {
-            if ("lookup".equalsIgnoreCase(args[0])) {
+            if ("lookup".equalsIgnoreCase(args[0]) || "view".equalsIgnoreCase(args[0])) {
                 List<String> playerNames = plugin.getServer().getOnlinePlayers().stream()
                         .map(Player::getName)
                         .collect(Collectors.toList());
                 StringUtil.copyPartialMatches(args[1], playerNames, suggestions);
             }
         } else if (args.length >= 3) {
-            if ("lookup".equalsIgnoreCase(args[0])) {
+            if ("lookup".equalsIgnoreCase(args[0]) || "l".equalsIgnoreCase(args[0])) {
                 String name = args[1];
                 Player target = plugin.getServer().getPlayer(name);
 

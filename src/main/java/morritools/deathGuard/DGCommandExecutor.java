@@ -3,11 +3,13 @@ package morritools.deathGuard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,10 +33,12 @@ public class DGCommandExecutor implements CommandExecutor {
         }
 
         switch (args[0].toLowerCase()) {
-            case "lookup":
+            case "lookup", "l":
                 return handleLookup(sender, args);
             case "rollback":
                 return handleRollback(sender, args);
+            case "view":
+                return handleView(sender, args);
             case "purge":
                 return handlePurge(sender, args);
             case "purgeuser":
@@ -170,9 +174,55 @@ public class DGCommandExecutor implements CommandExecutor {
             return true;
         }
 
-        String name = args[1];
-        String id = args[2];
 
+        return true;
+    }
+
+    private boolean handleView(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("Usage: /dg view <name> <reason#>");
+            return true;
+        }
+
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("This command can only be used by a player.");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        String name = args[1].trim();
+        Player target = plugin.getServer().getPlayer(name);
+
+        if (target == null) {
+            player.sendMessage("Player not found. They are either offline or do not exist.");
+            return true;
+        }
+
+        String targetUUID = target.getUniqueId().toString();
+        String data = database.getPlayerData(targetUUID);
+
+        if (data == null || data.isEmpty()) {
+            player.sendMessage(target.getName() + " has no data to view.");
+            return true;
+        }
+
+        String id = args[2].trim();
+
+        String[] entries = data.split("\\|");
+        for (String entry : entries) {
+            if (Utils.dataSplitter(entry, "ID").equals(id)) {
+                Inventory shownInventory = Bukkit.createInventory(null, 54, "Death Inventory");
+
+                Inventory deserializedInventory = Utils.deSerializeInventory(Utils.dataSplitter(entry, "INV"));
+
+                shownInventory.setContents(deserializedInventory.getContents());
+
+                player.openInventory(shownInventory);
+                break;
+            }
+        }
+
+        player.sendMessage(target.getName() + " does not have an entry matching that number.");
         return true;
     }
 
@@ -197,7 +247,6 @@ public class DGCommandExecutor implements CommandExecutor {
                     sender.sendMessage(ChatColor.RED + "No purge request found. Type '/dg purge' to initiate a purge.");
                     return true;
                 }
-                // Perform purge operation
                 database.purgeAllData();
                 sender.sendMessage(ChatColor.GREEN + "All death data has been purged.");
                 return true;
@@ -252,7 +301,6 @@ public class DGCommandExecutor implements CommandExecutor {
                     return true;
                 }
 
-                // Purge the data using the UUID
                 database.purgeUserData(expectedUUID);
                 sender.sendMessage(ChatColor.GREEN + "Death data for " + providedName + " has been purged.");
                 return true;
