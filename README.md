@@ -1,11 +1,11 @@
-Here's a comprehensive documentation on how to use the DeathGuard plugin, based on the provided `DGCommandExecutor` class:
-
----
-
-## DeathGuard Plugin Documentation
+## DeathGuard Documentation
 
 ### Overview
-The DeathGuard plugin allows players and admins to manage and restore player inventories from previous deaths. It provides several commands for viewing, restoring, and purging death data.
+The DeathGuard plugin allows players to manage and restore player inventories from previous deaths. It provides several commands for viewing, restoring, and purging death data.
+
+### Permissions
+- **`deathguard.user`**: Allows usage of the `lookup` and `view` commands.
+- **`deathguard.admin`**: Allows usage of all commands, including `purge` and `purgeuser`.
 
 ### Commands
 
@@ -54,10 +54,6 @@ The DeathGuard plugin allows players and admins to manage and restore player inv
 - **Permissions**: `deathguard.admin`
 - **Note**: Only players can perform this action. Initiates a confirmation request that must be confirmed with `/dg purgeuser <name> confirm`.
 
-### Permissions
-- **`deathguard.user`**: Allows usage of `lookup`, `view`, and `rollback` commands.
-- **`deathguard.admin`**: Allows usage of all commands, including `purge` and `purgeuser`.
-
 ### Example Usages
 
 1. **Lookup Player Death Data**:
@@ -99,8 +95,6 @@ The DeathGuard plugin allows players and admins to manage and restore player inv
 ### Notes
 - The plugin uses a confirmation system for critical actions like purging data to prevent accidental data loss.
 - Commands may not work if the specified player is offline or does not exist.
-
-For more detailed information or troubleshooting, consult the plugin’s documentation or support channels.
 
 --- 
 
