@@ -31,13 +31,13 @@ public class DGCommandExecutor implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("deathguard.admin") && !sender.hasPermission("deathguard.user")) {
+        if (!sender.hasPermission("deathguard.admin") || !sender.hasPermission("deathguard.user")) {
             sender.sendMessage(Utils.alert("You do not have permission to use this command."));
             return true;
         }
 
         if (args.length < 1) {
-            sender.sendMessage(Utils.alert("Usage: /dg <lookup|restore> <name> [page] [r:reason] [w:world]"));
+            sender.sendMessage(Utils.alert("Usage: /dg <lookup|rollback> <name> [page] [r:reason] [w:world]"));
             return false;
         }
 
