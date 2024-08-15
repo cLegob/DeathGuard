@@ -163,12 +163,27 @@ public class DGCommandExecutor implements CommandExecutor {
         }
         sender.sendMessage("-----");
 
-        TextComponent pageString = Component.text()
-                .append(createPageControl("<", page - 1, target.getName(), reasonFilter, worldFilter))
+        TextComponent pageString;
+
+        if (page != 1) {
+            pageString = Component.text()
+                    .append(createPageControl("< ", page - 1, target.getName(), reasonFilter, worldFilter))
+                    .build();
+        } else {
+            pageString = Component.text().build();
+        }
+
+        pageString = Component.text()
+                .append(pageString)
                 .append(Component.text("Page " + page + " of " + totalPages))
-                .append(createPageControl(">", page + 1, target.getName(), reasonFilter, worldFilter))
-                .color(NamedTextColor.GRAY)
                 .build();
+
+        if (page != totalPages) {
+            pageString = Component.text()
+                    .append(pageString)
+                    .append(createPageControl(" >", page + 1, target.getName(), reasonFilter, worldFilter))
+                    .build();
+        }
 
         sender.sendMessage(pageString);
         return true;
@@ -178,7 +193,7 @@ public class DGCommandExecutor implements CommandExecutor {
         return Component.text()
                 .content(label)
                 .clickEvent(ClickEvent.runCommand("/dg lookup " + name + " " + Math.max(1, page) + (reasonFilter.isEmpty() ? "" : " r:" + reasonFilter) + (worldFilter.isEmpty() ? "" : " w:" + worldFilter)))
-                .hoverEvent(Component.text(label.equals("<") ? "Previous Page" : "Next Page"))
+                .hoverEvent(Component.text(label.equals("< ") ? "Previous Page" : "Next Page"))
                 .build();
     }
 
@@ -266,7 +281,13 @@ public class DGCommandExecutor implements CommandExecutor {
                 shownInventory.setContents(inventory);
 
                 player.openInventory(shownInventory);
-                player.sendMessage(Utils.alert("Showing inventory for " + target.getName() + " from entry #" + id));
+
+                TextComponent showingMessage = Component.text()
+                        .append(Component.text(Utils.alert("Showing inventory for " + target.getName() + " from entry #" + id)))
+                        .clickEvent(ClickEvent.runCommand("/dg view " + target.getName() + " " + Utils.dataSplitter(entry, "ID")))
+                        .hoverEvent(HoverEvent.showText(Component.text("View Saved Inventory #" + Utils.dataSplitter(entry, "ID"))))
+                        .build();
+                player.sendMessage(showingMessage);
                 return true;
             }
         }
@@ -293,7 +314,7 @@ public class DGCommandExecutor implements CommandExecutor {
                 Player player = (Player) sender;
                 String confirmationType = pendingConfirmations.remove(player.getUniqueId().toString());
                 if (confirmationType == null || !confirmationType.equals("purge")) {
-                    sender.sendMessage(Utils.alert("No purge request found. Type '/dg purge' to initiate a purge."))    ;
+                    sender.sendMessage(Utils.alert("No purge request found. Type '/dg purge' to initiate a purge."));
                     return true;
                 }
                 database.purgeAllData();
