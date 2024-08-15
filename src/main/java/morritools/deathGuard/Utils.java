@@ -1,5 +1,6 @@
 package morritools.deathGuard;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -107,5 +108,9 @@ public class Utils {
             default:
                 return "Unknown";
         }
+    }
+
+    public static String alert(String string) {
+        return "[" + ChatColor.DARK_PURPLE + "DeathGuard" + ChatColor.RESET + "] - " + string;
     }
 }

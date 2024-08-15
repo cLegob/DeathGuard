@@ -2,6 +2,8 @@ package morritools.deathGuard;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -19,7 +21,7 @@ import java.util.Map;
 public class DGCommandExecutor implements CommandExecutor {
     private final DeathGuard plugin;
     private final Database database;
-    private static final int maxPage = 7;
+    private static final int MAX_PAGE = 7;
     private final Map<String, String> pendingConfirmations = new HashMap<>();
 
     public DGCommandExecutor(DeathGuard plugin, Database database) {
@@ -29,20 +31,48 @@ public class DGCommandExecutor implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // Check if the sender has permission to use any DeathGuard commands
+        if (!sender.hasPermission("deathguard.admin") && !sender.hasPermission("deathguard.user")) {
+            sender.sendMessage(Utils.alert("You do not have permission to use this command."));
+            return true;
+        }
+
+        // Check permissions for specific commands
         if (args.length < 1) {
+            sender.sendMessage(Utils.alert("Usage: /dg <lookup|restore> <name> [page] [r:reason] [w:world]"));
             return false;
         }
 
         switch (args[0].toLowerCase()) {
             case "lookup", "l":
+                if (!sender.hasPermission("deathguard.user") || !sender.hasPermission("deathguard.admin")) {
+                    sender.sendMessage(Utils.alert("You do not have permission to use this command."));
+                    return true;
+                }
                 return handleLookup(sender, args);
             case "rollback":
+                if (!sender.hasPermission("deathguard.admin")) {
+                    sender.sendMessage(Utils.alert("You do not have permission to use this command."));
+                    return true;
+                }
                 return handleRollback(sender, args);
             case "view":
+                if (!sender.hasPermission("deathguard.user") || !sender.hasPermission("deathguard.admin")) {
+                    sender.sendMessage(Utils.alert("You do not have permission to use this command."));
+                    return true;
+                }
                 return handleView(sender, args);
             case "purge":
+                if (!sender.hasPermission("deathguard.admin")) {
+                    sender.sendMessage(Utils.alert("You do not have permission to use this command."));
+                    return true;
+                }
                 return handlePurge(sender, args);
             case "purgeuser":
+                if (!sender.hasPermission("deathguard.admin")) {
+                    sender.sendMessage(Utils.alert("You do not have permission to use this command."));
+                    return true;
+                }
                 return handlePurgeUser(sender, args);
             default:
                 return false;
@@ -51,7 +81,7 @@ public class DGCommandExecutor implements CommandExecutor {
 
     private boolean handleLookup(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("Usage: /dg lookup <name> [page] [r:reason] [w:world]");
+            sender.sendMessage(Utils.alert("Usage: /dg lookup <name> [page] [r:reason] [w:world]"));
             return true;
         }
 
@@ -59,7 +89,7 @@ public class DGCommandExecutor implements CommandExecutor {
         Player target = plugin.getServer().getPlayer(name);
 
         if (target == null) {
-            sender.sendMessage("Player not found. They are either offline or do not exist");
+            sender.sendMessage(Utils.alert("Player not found. They are either offline or do not exist."));
             return true;
         }
 
@@ -67,64 +97,37 @@ public class DGCommandExecutor implements CommandExecutor {
         String data = database.getPlayerData(targetUUID);
 
         if (data == null || data.isEmpty()) {
-            sender.sendMessage("No death data found for " + target.getName());
+            sender.sendMessage(Utils.alert("No death data found for " + target.getName()));
             return true;
         }
 
         int page = 1;
-        StringBuilder reasonBuilder = new StringBuilder();
-        StringBuilder worldBuilder = new StringBuilder();
+        String reasonFilter = "";
+        String worldFilter = "";
 
+        // Parsing arguments
         for (int i = 2; i < args.length; i++) {
             String arg = args[i].trim();
             if (arg.matches("\\d+")) {
-                try {
-                    page = Integer.parseInt(arg);
-                } catch (NumberFormatException e) {
-                    if (reasonBuilder.length() > 0 || worldBuilder.length() > 0) {
-                        reasonBuilder.append(" ").append(arg);
-                    } else {
-                        worldBuilder.append(arg);
-                    }
-                }
+                page = Integer.parseInt(arg);
             } else if (arg.startsWith("r:")) {
-                if (reasonBuilder.length() > 0) {
-                    reasonBuilder.append(" ");
-                }
-                reasonBuilder.append(arg.substring(2));
+                reasonFilter = arg.substring(2).trim();
             } else if (arg.startsWith("w:")) {
-                if (worldBuilder.length() > 0) {
-                    worldBuilder.append(" ");
-                }
-                worldBuilder.append(arg.substring(2));
-            } else {
-                if (reasonBuilder.length() > 0 || worldBuilder.length() > 0) {
-                    reasonBuilder.append(" ").append(arg);
-                } else {
-                    worldBuilder.append(arg);
-                }
+                worldFilter = arg.substring(2).trim();
             }
         }
 
-        String reasonFilter = reasonBuilder.toString().trim();
-        String worldFilter = worldBuilder.toString().trim();
-
+        // Filtering entries
         String[] entries = data.split("\\|");
-
-        if (!reasonFilter.isEmpty()) {
-            entries = Arrays.stream(entries)
-                    .filter(entry -> Utils.dataSplitter(entry, "TYPE").equalsIgnoreCase(reasonFilter))
-                    .toArray(String[]::new);
-        }
-
-        if (!worldFilter.isEmpty()) {
-            entries = Arrays.stream(entries)
-                    .filter(entry -> Utils.dataSplitter(entry, "WORLD").equalsIgnoreCase(worldFilter))
-                    .toArray(String[]::new);
-        }
+        String finalWorldFilter = worldFilter;
+        String finalReasonFilter = reasonFilter;
+        entries = Arrays.stream(entries)
+                .filter(entry -> finalReasonFilter.isEmpty() || Utils.dataSplitter(entry, "TYPE").equalsIgnoreCase(finalReasonFilter))
+                .filter(entry -> finalWorldFilter.isEmpty() || Utils.dataSplitter(entry, "WORLD").equalsIgnoreCase(finalWorldFilter))
+                .toArray(String[]::new);
 
         if (entries.length == 0) {
-            String noEntriesMessage = "No death entries found";
+            String noEntriesMessage = Utils.alert("No death entries found");
             if (!reasonFilter.isEmpty()) {
                 noEntriesMessage += " for reason: " + reasonFilter;
             }
@@ -135,52 +138,74 @@ public class DGCommandExecutor implements CommandExecutor {
             return true;
         }
 
-        Arrays.sort(entries, (a, b) -> {
-            int idA = Integer.parseInt(Utils.dataSplitter(a, "ID"));
-            int idB = Integer.parseInt(Utils.dataSplitter(b, "ID"));
-            return Integer.compare(idB, idA);
-        });
+        // Sorting entries
+        Arrays.sort(entries, (a, b) -> Integer.compare(
+                Integer.parseInt(Utils.dataSplitter(b, "ID")),
+                Integer.parseInt(Utils.dataSplitter(a, "ID"))
+        ));
 
-        int totalPages = (int) Math.ceil((double) entries.length / maxPage);
+        // Paging
+        int totalPages = (int) Math.ceil((double) entries.length / MAX_PAGE);
         if (page > totalPages || page < 1) {
-            sender.sendMessage("Invalid page number. Please enter a number between 1 and " + totalPages);
+            sender.sendMessage(Utils.alert("Invalid page number. Please enter a number between 1 and " + totalPages));
             return true;
         }
 
-        int startIndex = (page - 1) * maxPage;
-        int endIndex = Math.min(startIndex + maxPage, entries.length);
+        int startIndex = (page - 1) * MAX_PAGE;
+        int endIndex = Math.min(startIndex + MAX_PAGE, entries.length);
 
+        // Display entries
         sender.sendMessage("----- " + ChatColor.DARK_PURPLE + "DeathGuard" + ChatColor.RESET + " ----- " + ChatColor.GRAY + "(" + target.getName() + ")");
-
         for (int i = startIndex; i < endIndex; i++) {
             String entry = entries[i];
-            final TextComponent dataMessage = Component.text()
+            TextComponent dataMessage = Component.text()
                     .content("#" + Utils.dataSplitter(entry, "ID"))
                     .append(Component.text(": " + Utils.dataSplitter(entry, "TYPE")))
                     .append(Component.text(", " + Utils.simplifyTime(Utils.dataSplitter(entry, "TIME"))))
                     .append(Component.text(" (" + Utils.dataSplitter(entry, "LOC") + ")").color(NamedTextColor.GRAY))
+                    .clickEvent(ClickEvent.runCommand("/dg view " + target.getName() + " " + Utils.dataSplitter(entry, "ID")))
+                    .hoverEvent(HoverEvent.showText(Component.text("View Saved Inventory #" + Utils.dataSplitter(entry, "ID"))))
                     .build();
             sender.sendMessage(dataMessage);
         }
-
         sender.sendMessage("-----");
-        sender.sendMessage(ChatColor.GRAY + "Page " + page + " of " + totalPages);
 
+        // Pagination controls
+        TextComponent pageString = Component.text()
+                .append(createPageControl("<", page - 1, target.getName(), reasonFilter, worldFilter))
+                .append(Component.text("Page " + page + " of " + totalPages))
+                .append(createPageControl(">", page + 1, target.getName(), reasonFilter, worldFilter))
+                .color(NamedTextColor.GRAY)
+                .build();
+
+        sender.sendMessage(pageString);
         return true;
+    }
+
+    private TextComponent createPageControl(String label, int page, String name, String reasonFilter, String worldFilter) {
+        return Component.text()
+                .content(label)
+                .clickEvent(ClickEvent.runCommand("/dg lookup " + name + " " + Math.max(1, page) + (reasonFilter.isEmpty() ? "" : " r:" + reasonFilter) + (worldFilter.isEmpty() ? "" : " w:" + worldFilter)))
+                .hoverEvent(Component.text(label.equals("<") ? "Previous Page" : "Next Page"))
+                .build();
     }
 
     private boolean handleRollback(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("Usage: /dg rollback <name> <reason#>");
+            sender.sendMessage(Utils.alert("Usage: /dg rollback <name> <reason#>"));
             return true;
         }
-        Player player = (Player) sender;
+
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(Utils.alert("This command can only be used by a player."));
+            return true;
+        }
 
         String name = args[1].trim();
         Player target = plugin.getServer().getPlayer(name);
 
         if (target == null) {
-            player.sendMessage("Player not found. They are either offline or do not exist.");
+            player.sendMessage(Utils.alert("Player not found. They are either offline or do not exist."));
             return true;
         }
 
@@ -188,7 +213,7 @@ public class DGCommandExecutor implements CommandExecutor {
         String data = database.getPlayerData(targetUUID);
 
         if (data == null || data.isEmpty()) {
-            player.sendMessage(target.getName() + " has no data to rollback.");
+            player.sendMessage(Utils.alert(target.getName() + " has no data to rollback."));
             return true;
         }
 
@@ -197,28 +222,29 @@ public class DGCommandExecutor implements CommandExecutor {
         String[] entries = data.split("\\|");
         for (String entry : entries) {
             if (Utils.dataSplitter(entry, "ID").equals(id)) {
-                Inventory  targetInv = target.getInventory();
+                Inventory targetInv = target.getInventory();
                 ItemStack[] inventory = Utils.deserializeInventory(Utils.dataSplitter(entry, "INV"));
 
                 targetInv.setContents(inventory);
-
                 target.updateInventory();
 
+                player.sendMessage(Utils.alert("Rolled back inventory for " + target.getName() + " to entry #" + id));
                 return true;
             }
         }
-        player.sendMessage(target.getName() + " does not have an entry matching that number.");
+
+        player.sendMessage(Utils.alert("No matching entry found for the provided ID."));
         return true;
     }
 
     private boolean handleView(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("Usage: /dg view <name> <reason#>");
+            sender.sendMessage(Utils.alert("Usage: /dg view <name> <reason#>"));
             return true;
         }
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("This command can only be used by a player.");
+            sender.sendMessage(Utils.alert("This command can only be used by a player."));
             return true;
         }
 
@@ -226,7 +252,7 @@ public class DGCommandExecutor implements CommandExecutor {
         Player target = plugin.getServer().getPlayer(name);
 
         if (target == null) {
-            player.sendMessage("Player not found. They are either offline or do not exist.");
+            player.sendMessage(Utils.alert("Player not found. They are either offline or do not exist."));
             return true;
         }
 
@@ -234,7 +260,7 @@ public class DGCommandExecutor implements CommandExecutor {
         String data = database.getPlayerData(targetUUID);
 
         if (data == null || data.isEmpty()) {
-            player.sendMessage(target.getName() + " has no data to view.");
+            player.sendMessage(Utils.alert(target.getName() + " has no data to view."));
             return true;
         }
 
@@ -243,18 +269,17 @@ public class DGCommandExecutor implements CommandExecutor {
         String[] entries = data.split("\\|");
         for (String entry : entries) {
             if (Utils.dataSplitter(entry, "ID").equals(id)) {
-                Inventory shownInventory = Bukkit.createInventory(null, 54, "Death Inventory");
-
+                Inventory shownInventory = Bukkit.createInventory(null, 45, target.getName() + ", #" + id);
                 ItemStack[] inventory = Utils.deserializeInventory(Utils.dataSplitter(entry, "INV"));
-
                 shownInventory.setContents(inventory);
 
                 player.openInventory(shownInventory);
+                player.sendMessage(Utils.alert("Showing inventory for " + target.getName() + " from entry #" + id));
                 return true;
             }
         }
 
-        player.sendMessage(target.getName() + " does not have an entry matching that number.");
+        player.sendMessage(Utils.alert("No matching entry found for the provided ID."));
         return true;
     }
 
@@ -265,10 +290,10 @@ public class DGCommandExecutor implements CommandExecutor {
                 pendingConfirmations.remove(player.getUniqueId().toString());
 
                 pendingConfirmations.put(player.getUniqueId().toString(), "purge");
-                sender.sendMessage(ChatColor.YELLOW + "Are you sure you want to purge all death data? Type '/dg purge confirm' to confirm.");
+                sender.sendMessage(Utils.alert("Are you sure you want to purge all death data? Type '/dg purge confirm' to confirm."));
                 return true;
             } else {
-                sender.sendMessage("Only players can perform this action.");
+                sender.sendMessage(Utils.alert("Only players can perform this action."));
                 return true;
             }
         } else if (args.length == 2 && args[1].equalsIgnoreCase("confirm")) {
@@ -276,18 +301,18 @@ public class DGCommandExecutor implements CommandExecutor {
                 Player player = (Player) sender;
                 String confirmationType = pendingConfirmations.remove(player.getUniqueId().toString());
                 if (confirmationType == null || !confirmationType.equals("purge")) {
-                    sender.sendMessage(ChatColor.RED + "No purge request found. Type '/dg purge' to initiate a purge.");
+                    sender.sendMessage(Utils.alert("No purge request found. Type '/dg purge' to initiate a purge."))    ;
                     return true;
                 }
                 database.purgeAllData();
-                sender.sendMessage(ChatColor.GREEN + "All death data has been purged.");
+                sender.sendMessage(Utils.alert("All death data has been purged."));
                 return true;
             } else {
-                sender.sendMessage("Only players can perform this action.");
+                sender.sendMessage(Utils.alert("Only players can perform this action."));
                 return true;
             }
         } else {
-            sender.sendMessage("Usage: /dg purge or /dg purge confirm");
+            sender.sendMessage(Utils.alert("Usage: /dg purge or /dg purge confirm"));
             return true;
         }
     }
@@ -300,7 +325,7 @@ public class DGCommandExecutor implements CommandExecutor {
 
                 Player target = plugin.getServer().getPlayer(targetName);
                 if (target == null) {
-                    sender.sendMessage(ChatColor.RED + "Player " + targetName + " is not online or does not exist.");
+                    sender.sendMessage(Utils.alert("Player " + targetName + " is not online or does not exist."));
                     return true;
                 }
 
@@ -309,7 +334,7 @@ public class DGCommandExecutor implements CommandExecutor {
                 pendingConfirmations.remove(player.getUniqueId().toString());
 
                 pendingConfirmations.put(player.getUniqueId().toString(), "purgeuser " + targetUUID);
-                sender.sendMessage(ChatColor.YELLOW + "Are you sure you want to purge death data for " + targetName + "? Type '/dg purgeuser " + targetName + " confirm' to confirm.");
+                sender.sendMessage(Utils.alert("Are you sure you want to purge death data for " + targetName + "? Type '/dg purgeuser " + targetName + " confirm' to confirm."));
                 return true;
             } else {
                 sender.sendMessage("Only players can perform this action.");
@@ -320,7 +345,7 @@ public class DGCommandExecutor implements CommandExecutor {
                 Player player = (Player) sender;
                 String confirmationType = pendingConfirmations.remove(player.getUniqueId().toString());
                 if (confirmationType == null || !confirmationType.startsWith("purgeuser ")) {
-                    sender.sendMessage(ChatColor.RED + "No purgeuser request found. Type '/dg purgeuser <name>' to initiate a purge for a user.");
+                    sender.sendMessage(Utils.alert("No purgeuser request found. Type '/dg purgeuser <name>' to initiate a purge for a user."));
                     return true;
                 }
 
@@ -329,21 +354,20 @@ public class DGCommandExecutor implements CommandExecutor {
 
                 Player target = plugin.getServer().getPlayer(providedName);
                 if (target == null || !target.getUniqueId().toString().equals(expectedUUID)) {
-                    sender.sendMessage(ChatColor.RED + "The provided name does not match the original request or the player is not online. Please type '/dg purgeuser <name>' to initiate a new request.");
+                    sender.sendMessage(Utils.alert("The provided name does not match the original request or the player is not online. Please type '/dg purgeuser <name>' to initiate a new request."));
                     return true;
                 }
 
                 database.purgeUserData(expectedUUID);
-                sender.sendMessage(ChatColor.GREEN + "Death data for " + providedName + " has been purged.");
+                sender.sendMessage(Utils.alert("Death data for " + providedName + " has been purged."));
                 return true;
             } else {
-                sender.sendMessage("Only players can perform this action.");
+                sender.sendMessage(Utils.alert("Only players can perform this action."));
                 return true;
             }
         } else {
-            sender.sendMessage("Usage: /dg purgeuser <name> or /dg purgeuser <name> confirm");
+            sender.sendMessage(Utils.alert("Usage: /dg purgeuser <name> or /dg purgeuser <name> confirm"));
             return true;
         }
     }
-
 }

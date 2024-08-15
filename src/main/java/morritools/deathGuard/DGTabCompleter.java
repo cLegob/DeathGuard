@@ -41,7 +41,7 @@ public class DGTabCompleter implements TabCompleter {
     }
 
     private boolean isCommandWithPlayerArg(String command) {
-        return List.of("lookup", "l", "view", "restore").contains(command.toLowerCase());
+        return List.of("lookup", "l", "view", "rollback").contains(command.toLowerCase());
     }
 
     private void handleLookupTabCompletion(String[] args, List<String> suggestions) {
