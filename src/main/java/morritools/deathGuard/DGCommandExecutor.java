@@ -10,6 +10,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -169,12 +170,44 @@ public class DGCommandExecutor implements CommandExecutor {
     }
 
     private boolean handleRollback(CommandSender sender, String[] args) {
-        if (args.length != 3) {
-            sender.sendMessage("Usage: /dg rollback <name> <id>");
+        if (args.length < 3) {
+            sender.sendMessage("Usage: /dg rollback <name> <reason#>");
+            return true;
+        }
+        Player player = (Player) sender;
+
+        String name = args[1].trim();
+        Player target = plugin.getServer().getPlayer(name);
+
+        if (target == null) {
+            player.sendMessage("Player not found. They are either offline or do not exist.");
             return true;
         }
 
+        String targetUUID = target.getUniqueId().toString();
+        String data = database.getPlayerData(targetUUID);
 
+        if (data == null || data.isEmpty()) {
+            player.sendMessage(target.getName() + " has no data to rollback.");
+            return true;
+        }
+
+        String id = args[2].trim();
+
+        String[] entries = data.split("\\|");
+        for (String entry : entries) {
+            if (Utils.dataSplitter(entry, "ID").equals(id)) {
+                Inventory  targetInv = target.getInventory();
+                ItemStack[] inventory = Utils.deserializeInventory(Utils.dataSplitter(entry, "INV"));
+
+                targetInv.setContents(inventory);
+
+                target.updateInventory();
+
+                return true;
+            }
+        }
+        player.sendMessage(target.getName() + " does not have an entry matching that number.");
         return true;
     }
 
@@ -184,12 +217,11 @@ public class DGCommandExecutor implements CommandExecutor {
             return true;
         }
 
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage("This command can only be used by a player.");
             return true;
         }
 
-        Player player = (Player) sender;
         String name = args[1].trim();
         Player target = plugin.getServer().getPlayer(name);
 
@@ -213,12 +245,12 @@ public class DGCommandExecutor implements CommandExecutor {
             if (Utils.dataSplitter(entry, "ID").equals(id)) {
                 Inventory shownInventory = Bukkit.createInventory(null, 54, "Death Inventory");
 
-                Inventory deserializedInventory = Utils.deSerializeInventory(Utils.dataSplitter(entry, "INV"));
+                ItemStack[] inventory = Utils.deserializeInventory(Utils.dataSplitter(entry, "INV"));
 
-                shownInventory.setContents(deserializedInventory.getContents());
+                shownInventory.setContents(inventory);
 
                 player.openInventory(shownInventory);
-                break;
+                return true;
             }
         }
 

@@ -21,13 +21,13 @@ public class DGListener implements Listener {
         UUID uuid = player.getUniqueId();
         String uuidString = uuid.toString();
         int deathId = database.getNextDeathId(uuidString);
-        String serializedInventory = Utils.serializeInventory(player);
+        String inventory = Utils.serializeInventory(player);
         long time = System.currentTimeMillis();
         String reason = Utils.simplifyReason(e.getDeathMessage(), player.getName());
         String location = Utils.simplifyLocation(player);
         String world = Utils.simplifyWorld(player);
         String data = String.format("%d.%s.%d.%s.%s.%s",
-                deathId, serializedInventory, time, reason, location, world);
+                deathId, inventory, time, reason, location, world);
 
         database.insertPlayerData(uuidString, data);
     }

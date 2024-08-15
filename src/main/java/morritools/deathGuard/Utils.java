@@ -1,27 +1,16 @@
 package morritools.deathGuard;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.Map;
 
 public class Utils {
-
-    public static String serializeInventory(Player player) {
-        Inventory inventory = player.getInventory();
-        ItemStack[] items = inventory.getContents();
-
-        return JSONComponentSerializer.json().serialize(Component.text(Arrays.toString(items)));
-    }
 
     public static String dataSplitter(String input, String part) {
         String[] parts = input.split("\\.");
@@ -36,45 +25,41 @@ public class Utils {
         };
     }
 
-    public static Inventory deSerializeInventory(String serializedInventory) {
-        String deSerializedInventory = String.valueOf(JSONComponentSerializer.json().deserialize(String.valueOf(Component.text(serializedInventory))));
-        serializedInventory = serializedInventory.substring(1, serializedInventory.length() - 1).trim();
+    public static String serializeInventory(Player player) {
+        ItemStack[] inventoryContents = player.getInventory().getContents();
+        String[] serializedInventory = new String[inventoryContents.length];
 
-        String[] elements = serializedInventory.split(",\\s*");
-
-        Inventory inventory = Bukkit.createInventory(null, 54);
-
-        for (int i = 0; i < elements.length; i++) {
-            String element = elements[i];
-
-            if ("null".equals(element)) {
-                inventory.setItem(i, null);
-            } else if (element.startsWith("ItemStack")) {
-                ItemStack itemStack = parseItemStack(element);
-                inventory.setItem(i, itemStack);
+        for (int i = 0; i < inventoryContents.length; i++) {
+            ItemStack item = inventoryContents[i];
+            if (item != null) {
+                Map<String, Object> itemMap = item.serialize();
+                YamlConfiguration config = new YamlConfiguration();
+                config.set("item", itemMap);
+                serializedInventory[i] = config.saveToString();
             } else {
-                throw new IllegalArgumentException("Unexpected element format: " + element);
+                serializedInventory[i] = "null";
             }
         }
-
-        return inventory;
+        return String.join(";;;", serializedInventory);
     }
 
-    private static ItemStack parseItemStack(String itemStackStr) {
-        itemStackStr = itemStackStr.replace("ItemStack{", "").replace("}", "");
-        String[] parts = itemStackStr.split(" x ");
+    public static ItemStack[] deserializeInventory(String serializedInventory) {
+        String[] itemStrings = serializedInventory.split(";;;");
+        ItemStack[] inventoryContents = new ItemStack[itemStrings.length];
 
-        String materialName = parts[0].trim();
-        int amount = Integer.parseInt(parts[1].trim());
-
-        Material material = Material.getMaterial(materialName.toUpperCase());
-        if (material == null) {
-            throw new IllegalArgumentException("Invalid material: " + materialName);
+        for (int i = 0; i < itemStrings.length; i++) {
+            if (!itemStrings[i].equals("null")) {
+                YamlConfiguration config = new YamlConfiguration();
+                try {
+                    config.loadFromString(itemStrings[i]);
+                    Map<String, Object> itemMap = config.getConfigurationSection("item").getValues(false);
+                    inventoryContents[i] = ItemStack.deserialize(itemMap);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        ItemStack itemStack = new ItemStack(material);
-        itemStack.setAmount(amount);
-
-        return itemStack;
+        return inventoryContents;
     }
 
     public static String simplifyReason(String reason, String playerName) {

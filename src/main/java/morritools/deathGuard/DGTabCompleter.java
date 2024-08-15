@@ -6,10 +6,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,54 +27,54 @@ public class DGTabCompleter implements TabCompleter {
         if (args.length == 1) {
             List<String> commands = List.of("lookup", "rollback", "purge", "purgeuser");
             StringUtil.copyPartialMatches(args[0], commands, suggestions);
-        } else if (args.length == 2) {
-            if ("lookup".equalsIgnoreCase(args[0]) || "view".equalsIgnoreCase(args[0])) {
-                List<String> playerNames = plugin.getServer().getOnlinePlayers().stream()
-                        .map(Player::getName)
-                        .collect(Collectors.toList());
-                StringUtil.copyPartialMatches(args[1], playerNames, suggestions);
-            }
-        } else if (args.length >= 3) {
-            if ("lookup".equalsIgnoreCase(args[0]) || "l".equalsIgnoreCase(args[0])) {
-                String name = args[1];
-                Player target = plugin.getServer().getPlayer(name);
-
-                if (target != null) {
-                    String targetUUID = target.getUniqueId().toString();
-                    String data = database.getPlayerData(targetUUID);
-
-                    if (data != null && !data.isEmpty()) {
-                        String[] entries = data.split("\\|");
-                        Set<String> reasons = Stream.of(entries)
-                                .map(entry -> Utils.dataSplitter(entry, "TYPE"))
-                                .collect(Collectors.toSet());
-                        Set<String> worlds = Stream.of(entries)
-                                .map(entry -> Utils.dataSplitter(entry, "WORLD"))
-                                .collect(Collectors.toSet());
-
-                        String lastArg = args[args.length - 1];
-                        if (lastArg.startsWith("r:")) {
-                            String reasonPrefix = lastArg.substring(2).toLowerCase();
-                            suggestions.addAll(reasons.stream()
-                                    .filter(reason -> reason.toLowerCase().startsWith(reasonPrefix))
-                                    .map(reason -> "r:" + reason)
-                                    .collect(Collectors.toList()));
-                        } else if (lastArg.startsWith("w:")) {
-                            String worldPrefix = lastArg.substring(2).toLowerCase();
-                            suggestions.addAll(worlds.stream()
-                                    .filter(world -> world.toLowerCase().startsWith(worldPrefix))
-                                    .map(world -> "w:" + world)
-                                    .collect(Collectors.toList()));
-                        } else {
-                            suggestions.add("r:");
-                            suggestions.add("w:");
-                        }
-                    }
-                }
-            }
+        } else if (args.length == 2 && isCommandWithPlayerArg(args[0])) {
+            List<String> playerNames = plugin.getServer().getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .collect(Collectors.toList());
+            StringUtil.copyPartialMatches(args[1], playerNames, suggestions);
+        } else if (args.length >= 3 && "lookup".equalsIgnoreCase(args[0])) {
+            handleLookupTabCompletion(args, suggestions);
         }
 
         Collections.sort(suggestions);
         return suggestions;
+    }
+
+    private boolean isCommandWithPlayerArg(String command) {
+        return List.of("lookup", "l", "view", "restore").contains(command.toLowerCase());
+    }
+
+    private void handleLookupTabCompletion(String[] args, List<String> suggestions) {
+        Player target = plugin.getServer().getPlayer(args[1]);
+
+        if (target == null) return;
+
+        String data = database.getPlayerData(target.getUniqueId().toString());
+        if (data == null || data.isEmpty()) return;
+
+        Set<String> reasons = extractDataFromEntries(data, "TYPE");
+        Set<String> worlds = extractDataFromEntries(data, "WORLD");
+
+        String lastArg = args[args.length - 1];
+        if (lastArg.startsWith("r:")) {
+            suggestMatchingEntries(lastArg.substring(2).toLowerCase(), "r:", reasons, suggestions);
+        } else if (lastArg.startsWith("w:")) {
+            suggestMatchingEntries(lastArg.substring(2).toLowerCase(), "w:", worlds, suggestions);
+        } else {
+            suggestions.addAll(List.of("r:", "w:"));
+        }
+    }
+
+    private Set<String> extractDataFromEntries(String data, String type) {
+        return Stream.of(data.split("\\|"))
+                .map(entry -> Utils.dataSplitter(entry, type))
+                .collect(Collectors.toSet());
+    }
+
+    private void suggestMatchingEntries(String prefix, String label, Set<String> entries, List<String> suggestions) {
+        suggestions.addAll(entries.stream()
+                .filter(entry -> entry.toLowerCase().startsWith(prefix))
+                .map(entry -> label + entry)
+                .collect(Collectors.toList()));
     }
 }
