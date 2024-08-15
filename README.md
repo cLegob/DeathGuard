@@ -95,7 +95,3 @@ The DeathGuard plugin allows players to manage and restore player inventories fr
 ### Notes
 - The plugin uses a confirmation system for critical actions like purging data to prevent accidental data loss.
 - Commands may not work if the specified player is offline or does not exist.
-
---- 
-
-Feel free to adjust or expand this documentation as needed for your plugin!
