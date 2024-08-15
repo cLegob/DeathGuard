@@ -31,13 +31,11 @@ public class DGCommandExecutor implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // Check if the sender has permission to use any DeathGuard commands
         if (!sender.hasPermission("deathguard.admin") && !sender.hasPermission("deathguard.user")) {
             sender.sendMessage(Utils.alert("You do not have permission to use this command."));
             return true;
         }
 
-        // Check permissions for specific commands
         if (args.length < 1) {
             sender.sendMessage(Utils.alert("Usage: /dg <lookup|restore> <name> [page] [r:reason] [w:world]"));
             return false;
@@ -105,7 +103,6 @@ public class DGCommandExecutor implements CommandExecutor {
         String reasonFilter = "";
         String worldFilter = "";
 
-        // Parsing arguments
         for (int i = 2; i < args.length; i++) {
             String arg = args[i].trim();
             if (arg.matches("\\d+")) {
@@ -117,7 +114,6 @@ public class DGCommandExecutor implements CommandExecutor {
             }
         }
 
-        // Filtering entries
         String[] entries = data.split("\\|");
         String finalWorldFilter = worldFilter;
         String finalReasonFilter = reasonFilter;
@@ -138,13 +134,11 @@ public class DGCommandExecutor implements CommandExecutor {
             return true;
         }
 
-        // Sorting entries
         Arrays.sort(entries, (a, b) -> Integer.compare(
                 Integer.parseInt(Utils.dataSplitter(b, "ID")),
                 Integer.parseInt(Utils.dataSplitter(a, "ID"))
         ));
 
-        // Paging
         int totalPages = (int) Math.ceil((double) entries.length / MAX_PAGE);
         if (page > totalPages || page < 1) {
             sender.sendMessage(Utils.alert("Invalid page number. Please enter a number between 1 and " + totalPages));
@@ -154,7 +148,6 @@ public class DGCommandExecutor implements CommandExecutor {
         int startIndex = (page - 1) * MAX_PAGE;
         int endIndex = Math.min(startIndex + MAX_PAGE, entries.length);
 
-        // Display entries
         sender.sendMessage("----- " + ChatColor.DARK_PURPLE + "DeathGuard" + ChatColor.RESET + " ----- " + ChatColor.GRAY + "(" + target.getName() + ")");
         for (int i = startIndex; i < endIndex; i++) {
             String entry = entries[i];
@@ -170,7 +163,6 @@ public class DGCommandExecutor implements CommandExecutor {
         }
         sender.sendMessage("-----");
 
-        // Pagination controls
         TextComponent pageString = Component.text()
                 .append(createPageControl("<", page - 1, target.getName(), reasonFilter, worldFilter))
                 .append(Component.text("Page " + page + " of " + totalPages))
