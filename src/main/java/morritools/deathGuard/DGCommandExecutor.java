@@ -199,7 +199,7 @@ public class DGCommandExecutor implements CommandExecutor {
 
     private boolean handleRollback(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(Utils.alert("Usage: /dg rollback <name> <reason#>"));
+            sender.sendMessage(Utils.alert("Usage: /dg rollback <name> <reason #>"));
             return true;
         }
 
@@ -231,7 +231,7 @@ public class DGCommandExecutor implements CommandExecutor {
             if (Utils.dataSplitter(entry, "ID").equals(id)) {
                 Inventory targetInv = target.getInventory();
                 ItemStack[] inventory = Utils.deserializeInventory(Utils.dataSplitter(entry, "INV"));
-
+                
                 targetInv.setContents(inventory);
                 target.updateInventory();
 
@@ -246,7 +246,7 @@ public class DGCommandExecutor implements CommandExecutor {
 
     private boolean handleView(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(Utils.alert("Usage: /dg view <name> <reason#>"));
+            sender.sendMessage(Utils.alert("Usage: /dg view <name> <entry#>"));
             return true;
         }
 

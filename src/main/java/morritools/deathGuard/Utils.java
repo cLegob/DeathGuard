@@ -91,23 +91,18 @@ public class Utils {
         return "just now";
     }
 
-    public static String simplifyLocation(Player player) {
-        Location location = player.getLastDeathLocation();
+    public static String simplifyLocation(Location location) {
         return location.getBlockX() + "x" + location.getBlockY() + "y" + location.getBlockZ() + "z";
     }
 
     public static String simplifyWorld(Player player) {
         World world = player.getWorld();
-        switch (world.getEnvironment()) {
-            case NORMAL:
-                return "Overworld";
-            case NETHER:
-                return "Nether";
-            case THE_END:
-                return "End";
-            default:
-                return "Unknown";
-        }
+        return switch (world.getEnvironment()) {
+            case NORMAL -> "Overworld";
+            case NETHER -> "Nether";
+            case THE_END -> "End";
+            default -> "Unknown";
+        };
     }
 
     public static String alert(String string) {

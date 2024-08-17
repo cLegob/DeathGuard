@@ -1,5 +1,6 @@
 package morritools.deathGuard;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,18 +18,16 @@ public class DGListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent e) {
-        Player player = e.getPlayer();
-        UUID uuid = player.getUniqueId();
-        String uuidString = uuid.toString();
-        int deathId = database.getNextDeathId(uuidString);
-        String inventory = Utils.serializeInventory(player);
-        long time = System.currentTimeMillis();
-        String reason = Utils.simplifyReason(e.getDeathMessage(), player.getName());
-        String location = Utils.simplifyLocation(player);
-        String world = Utils.simplifyWorld(player);
-        String data = String.format("%d.%s.%d.%s.%s.%s",
-                deathId, inventory, time, reason, location, world);
+        final Player player = e.getPlayer();
 
-        database.insertPlayerData(uuidString, data);
+        String data = String.format("%d.%s.%d.%s.%s.%s",
+                database.getNextDeathId(player.getUniqueId().toString()),
+                Utils.serializeInventory(player),
+                System.currentTimeMillis(),
+                Utils.simplifyReason(e.getDeathMessage() != null ? e.getDeathMessage() : "", player.getName()),
+                Utils.simplifyLocation(player.getLocation()),
+                Utils.simplifyWorld(player));
+
+        database.insertPlayerData(player.getUniqueId().toString(), data);
     }
 }
