@@ -31,7 +31,7 @@ public class DGCommandExecutor implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("deathguard.admin") || !sender.hasPermission("deathguard.user")) {
+        if (!sender.hasPermission("deathguard.admin") && !sender.hasPermission("deathguard.user")) {
             sender.sendMessage(Utils.alert("You do not have permission to use this command."));
             return true;
         }
@@ -41,40 +41,44 @@ public class DGCommandExecutor implements CommandExecutor {
             return false;
         }
 
-        switch (args[0].toLowerCase()) {
-            case "lookup", "l":
-                if (!sender.hasPermission("deathguard.user") || !sender.hasPermission("deathguard.admin")) {
+        return switch (args[0].toLowerCase()) {
+            case "lookup", "l" -> {
+                if (!sender.hasPermission("deathguard.user") && sender.hasPermission("deathguard.admin")) {
                     sender.sendMessage(Utils.alert("You do not have permission to use this command."));
-                    return true;
+                    yield true;
                 }
-                return handleLookup(sender, args);
-            case "rollback":
+                yield handleLookup(sender, args);
+            }
+            case "rollback" -> {
                 if (!sender.hasPermission("deathguard.admin")) {
                     sender.sendMessage(Utils.alert("You do not have permission to use this command."));
-                    return true;
+                    yield true;
                 }
-                return handleRollback(sender, args);
-            case "view":
-                if (!sender.hasPermission("deathguard.user") || !sender.hasPermission("deathguard.admin")) {
+                yield handleRollback(sender, args);
+            }
+            case "view" -> {
+                if (!sender.hasPermission("deathguard.user") && !sender.hasPermission("deathguard.admin")) {
                     sender.sendMessage(Utils.alert("You do not have permission to use this command."));
-                    return true;
+                    yield true;
                 }
-                return handleView(sender, args);
-            case "purge":
+                yield handleView(sender, args);
+            }
+            case "purge" -> {
                 if (!sender.hasPermission("deathguard.admin")) {
                     sender.sendMessage(Utils.alert("You do not have permission to use this command."));
-                    return true;
+                    yield true;
                 }
-                return handlePurge(sender, args);
-            case "purgeuser":
+                yield handlePurge(sender, args);
+            }
+            case "purgeuser" -> {
                 if (!sender.hasPermission("deathguard.admin")) {
                     sender.sendMessage(Utils.alert("You do not have permission to use this command."));
-                    return true;
+                    yield true;
                 }
-                return handlePurgeUser(sender, args);
-            default:
-                return false;
-        }
+                yield handlePurgeUser(sender, args);
+            }
+            default -> false;
+        };
     }
 
     private boolean handleLookup(CommandSender sender, String[] args) {

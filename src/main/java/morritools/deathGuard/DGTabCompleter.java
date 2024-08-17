@@ -23,6 +23,9 @@ public class DGTabCompleter implements TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> suggestions = new ArrayList<>();
+        if (!sender.hasPermission("deathguard.admin") && !sender.hasPermission("deathguard.user")) {
+            return null;
+        }
 
         if (args.length == 1) {
             List<String> commands = List.of("lookup", "rollback", "purge", "purgeuser");
