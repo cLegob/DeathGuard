@@ -8,6 +8,7 @@ public final class DeathGuard extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        startMessage();
         database = new Database(this);
         database.connect();
         database.createTable();
@@ -19,5 +20,14 @@ public final class DeathGuard extends JavaPlugin {
     @Override
     public void onDisable() {
         database.disconnect();
+    }
+
+
+    public void startMessage() {
+        getLogger().info("      |    __");
+        getLogger().info("      |   /  \\       DeathGuard");
+        getLogger().info("   ___|   \\__/       Running on Bukkit - Paper");
+        getLogger().info("  |   |      |       v" + getDescription().getVersion());
+        getLogger().info("  |___|   \\__/");
     }
 }

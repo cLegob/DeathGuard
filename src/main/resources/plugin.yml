@@ -2,7 +2,7 @@ name: DeathGuard
 version: '1.0'
 main: morritools.deathGuard.DeathGuard
 api-version: '1.21'
-Author: BradenM64
+Authors: [ BradenM64 ]
 permissions:
   deathguard.admin:
     description: Grants access to viewing and rollback commands
